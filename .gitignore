@@ -1,0 +1,34 @@
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# ===== 构建产物 =====
+desktop/web-dist/
+desktop/build-info.json
+desktop/dist/
+desktop/build/
+build/
+dist/
+*.spec.bak
+
+# ===== Node（upstream 内部使用，不入库） =====
+node_modules/
+.pnpm-store/
+.pnpm-debug.log*
+
+# ===== 编辑器 / 系统 =====
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.log
+*.log.*
+
+# ===== 本地调试 =====
+.pytest_cache/
+.ruff_cache/
