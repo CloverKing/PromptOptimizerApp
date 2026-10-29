@@ -14,6 +14,8 @@ import os
 import sys
 import threading
 import time
+import urllib.error
+import urllib.request
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Any
@@ -21,8 +23,8 @@ from typing import Any
 from . import config as config_module
 from . import paths, updater
 from .jsapi import DesktopApi
-from .server import ServerContext, WebAppServer, probe_instance
-from .single_instance import InstanceGuard, focus_existing_window
+from .server import ACTIVATE_PATH, ServerContext, WebAppServer, probe_instance
+from .single_instance import InstanceGuard, focus_existing_window, focus_window
 from .version import __version__
 
 log = logging.getLogger("poapp")
@@ -88,6 +90,28 @@ def load_build_info() -> dict[str, Any]:
     return info
 
 
+def find_running_instance(base_port: int, span: int = 9) -> int | None:
+    """探测已运行的实例端口。
+
+    首实例若因端口占用顺延到 17322…，这里也能找到，返回其实际端口。
+    """
+    for port in range(base_port, base_port + span + 1):
+        if probe_instance(port) is not None:
+            return port
+    return None
+
+
+def request_activate(port: int, timeout: float = 2.0) -> bool:
+    """请已运行的实例把窗口拉到前台。"""
+    url = f"http://127.0.0.1:{port}{ACTIVATE_PATH}"
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as response:  # noqa: S310 - 固定本机地址
+            return response.status == 200
+    except (urllib.error.URLError, OSError) as exc:
+        log.debug("请求激活失败：%s", exc)
+        return False
+
+
 # ---------------------------------------------------------------- 应用主体
 
 
@@ -109,6 +133,10 @@ class DesktopApp:
     @property
     def port(self) -> int:
         return self.server.port if self.server else int(self.config["port"])
+
+    @property
+    def window_title(self) -> str:
+        return f"{TITLE} v{self._build_info['app_version']}"
 
     def build_info(self) -> dict[str, Any]:
         return dict(self._build_info)
@@ -157,7 +185,9 @@ class DesktopApp:
             web_root=web_root,
             app_version=str(self._build_info["app_version"]),
             upstream_version=str(self._build_info["upstream_version"]),
+            title=self.window_title,
             disable_service_worker=bool(self.config["disable_service_worker"]),
+            on_activate=self._on_activate_request,
         )
         existing = probe_instance(int(self.config["port"]))
         if existing:
@@ -202,7 +232,7 @@ class DesktopApp:
         icon = paths.bundle_dir() / "assets" / "icon.ico"
 
         self.window = webview.create_window(
-            title=TITLE,
+            title=self.window_title,
             url=self.server.url if self.server else f"http://127.0.0.1:{self.port}/",
             width=int(window_config["width"]),
             height=int(window_config["height"]),
@@ -281,6 +311,16 @@ class DesktopApp:
         self._is_maximized = False
         log.debug("窗口已还原")
 
+    def _on_activate_request(self) -> None:
+        """第二个实例请求置前（在 HTTP 工作线程里调用）。"""
+        log.info("收到激活请求，把已有窗口置前")
+        if self.window is not None:
+            try:
+                self.window.show()
+            except Exception:  # noqa: BLE001
+                log.debug("显示窗口失败", exc_info=True)
+        focus_window(TITLE, pid=os.getpid())
+
     def _on_closing(self) -> bool:
         try:
             # 最大化时读到的是屏幕尺寸，不是用户想要的窗口尺寸，别写回配置
@@ -342,8 +382,12 @@ def main(argv: list[str] | None = None) -> int:
     guard = InstanceGuard()
     is_first = guard.acquire()
     if not is_first:
-        log.info("检测到已有实例在运行")
-        if not focus_existing_window(TITLE):
+        log.info("检测到已有实例在运行，尝试唤醒它的窗口")
+        port = find_running_instance(int(config["port"]))
+        activated = bool(port) and request_activate(port)
+        if not activated:
+            activated = focus_existing_window(TITLE)
+        if not activated:
             show_error("Prompt Optimizer 已在运行。", "请在任务栏中切换到已打开的窗口。")
         return 0
 

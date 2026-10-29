@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 from urllib.parse import unquote, urlparse
 
 from .paths import APP_ID
@@ -30,6 +30,7 @@ from .paths import APP_ID
 log = logging.getLogger(__name__)
 
 HEALTH_PATH = "/__app/health"
+ACTIVATE_PATH = "/__app/activate"
 SERVICE_WORKER_PATHS = frozenset({"/sw.js", "/service-worker.js"})
 
 # 关掉 Service Worker 时返回的替身脚本：接管旧缓存并清空，避免升级后仍加载旧前端。
@@ -71,7 +72,10 @@ class ServerContext:
     web_root: Path
     app_version: str
     upstream_version: str
+    title: str = ""
     disable_service_worker: bool = True
+    # 第二个实例通过 /__app/activate 请求把已有窗口拉到前台
+    on_activate: Callable[[], None] | None = None
     extra: dict[str, Any] = field(default_factory=dict)
 
 
@@ -139,6 +143,10 @@ class _Handler(BaseHTTPRequestHandler):
             self._send_health(head_only)
             return
 
+        if path == ACTIVATE_PATH:
+            self._handle_activate(head_only)
+            return
+
         if self.ctx.disable_service_worker and path in SERVICE_WORKER_PATHS:
             self._send_bytes(
                 HTTPStatus.OK,
@@ -192,11 +200,27 @@ class _Handler(BaseHTTPRequestHandler):
             "app_id": APP_ID,
             "app_version": self.ctx.app_version,
             "upstream_version": self.ctx.upstream_version,
+            "title": self.ctx.title,
             "pid": os.getpid(),
         }
         self._send_bytes(
             HTTPStatus.OK,
             json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+            "application/json; charset=utf-8",
+            "no-store",
+            head_only,
+        )
+
+    def _handle_activate(self, head_only: bool) -> None:
+        """第二个实例请求把已有窗口拉到前台。"""
+        if self.ctx.on_activate is not None:
+            try:
+                self.ctx.on_activate()
+            except Exception:  # noqa: BLE001 - 激活失败不应影响 HTTP 响应
+                log.exception("激活窗口失败")
+        self._send_bytes(
+            HTTPStatus.OK,
+            b'{"activated": true}',
             "application/json; charset=utf-8",
             "no-store",
             head_only,
