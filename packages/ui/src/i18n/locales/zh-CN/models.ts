@@ -1,0 +1,397 @@
+const messages = {
+  networkSettings: {
+    title: '网络设置',
+    description: '统一设置文本和图片模型的连接方式，包括获取模型、连接测试和生成。',
+    mode: '连接方式', system: '跟随系统（默认）', direct: '全部直连', manual: '手动代理',
+    proxyUrl: 'HTTP 代理地址',
+    proxyHint: '例如 http://127.0.0.1:7890。首版支持 HTTP 代理，不支持代理账号密码。',
+    advanced: '高级选项', bypassRules: '直连地址',
+    bypassPlaceholder: 'llm.company.com\n*.company.com',
+    bypassHint: '每行一个域名，支持 *.company.com 匹配子域名，最多 100 条。命中后直接连接；本地和私网 IP 默认直连。',
+    activeMode: '当前生效：{mode}',
+    localOnly: '仅此电脑的桌面端生效，不影响更新下载和云备份，不随模型备份导出。保存后重启生效。',
+    pendingRestart: '设置已保存，重启应用后生效。当前连接仍使用原设置。',
+    restartLater: '稍后重启', restartNow: '立即重启',
+    restartConfirm: '重启应用以应用网络设置。请先完成当前编辑；正在进行模型调用时无法重启。',
+    lastTest: '最近一次连接测试：{route}',
+    routes: { direct: '直连', 'system-proxy': '系统代理', 'manual-proxy': '手动代理', none: '未发起网络请求' },
+    errors: {
+      invalidMode: '请选择有效的连接方式。',
+      invalidProxy: '请输入有效的 HTTP 代理地址，不能包含账号、密码、路径或查询参数。',
+      invalidRules: '直连地址应为域名或 *.域名，每行一条，最多 100 条。',
+      loadFailed: '读取网络设置失败，请关闭后重试。', saveFailed: '保存网络设置失败，请重试。',
+      restartFailed: '重启失败，请手动关闭并重新打开应用。',
+      busy: '正在调用模型，请等待完成后再重启。', restarting: '应用正在重启，请稍后重试。',
+      unsupportedSystemProxy: '系统返回了不支持的代理类型，请使用 HTTP 代理或检查系统代理设置。',
+    },
+  },
+  "modelManager": {
+    "title": "模型管理",
+    "textModels": "文本模型",
+    "imageModels": "图像模型",
+    "functionModels": "功能模型",
+    "modelList": "模型列表",
+    "testConnection": "测试连接",
+    "editModel": "编辑",
+    "deleteModel": "删除",
+    "displayName": "显示名称",
+    "enabled": "启用",
+    "enabledStatus": "启用状态",
+    "modelKey": "模型标识",
+    "apiUrl": "API地址",
+    "apiUrlHint": "示例：https://api.example.com/v1；多数提供商地址通常以 /v1 结尾",
+    "apiUrlHintAriaLabel": "显示 API 地址说明",
+    "defaultModel": "默认模型",
+    "selectModel": "选择模型",
+    "clickToFetchModels": "点击箭头获取模型列表",
+    "apiKey": "API密钥",
+    "getApiKey": "获取API密钥",
+    "addModel": "添加",
+    "addImageModel": "添加图像模型",
+    "provider": {
+      "section": "提供商配置",
+      "label": "提供商",
+      "placeholder": "选择提供商",
+      "more": "更多",
+      "openaiCompatibleCustomLabel": "OpenAI 兼容（自定义）",
+      "openaiHint": "官方 OpenAI API 入口。如果你想接入自定义 Base URL、第三方兼容服务或本地模型，请选择“OpenAI 兼容（自定义）”。",
+      "customApiHint": "用于接入自定义 OpenAI 兼容接口。你可以配置 Base URL、自定义模型名，并选择 Chat Completions 或 Responses 请求风格。",
+      "dashscopeHint": "阿里百炼已支持 OpenAI 兼容的 Chat Completions 与 Responses 接口。当前可直接在这里切换请求风格进行使用。",
+      "xiaomiMimoHint": "默认使用小米 MiMo Token Plan 中国区地址：https://token-plan-cn.xiaomimimo.com/v1。也可按订阅管理页改为新加坡 https://token-plan-sgp.xiaomimimo.com/v1 或阿姆斯特丹 https://token-plan-ams.xiaomimimo.com/v1。环境变量预置使用 VITE_MIMO_TOKEN_PLAN_*。",
+      "minimaxHint": "默认地址是 MiniMax 海外 OpenAI 兼容接口。国内用户请将 API 地址改为 https://api.minimaxi.com/v1；这里不要使用 MiniMax 的 Anthropic 格式地址。",
+      "chromeBuiltInHint": "使用 Chrome 自带的本地 Gemini Nano 模型，无需第三方 API Key。模型由 Chrome 管理，首次使用可能需要用户明确下载。目前 Chrome 官方仅支持英语、西班牙语、日语输出，本提供商会默认按英语会话兼容处理。"
+    },
+    "chromeBuiltIn": {
+      "downloadAction": "下载/准备本地模型",
+      "recheckAction": "重新检测",
+      "preparing": "正在准备 Chrome 本地模型...",
+      "ready": "Chrome 本地模型已可用",
+      "prepareFailed": "准备 Chrome 本地模型失败：{error}",
+      "statusWithError": "{status}（{error}）",
+      "title": {
+        "checking": "正在检测 Chrome 本地 AI",
+        "available": "Chrome 本地 AI 已可用",
+        "downloadable": "需要下载 Chrome 本地模型",
+        "downloading": "Chrome 正在下载本地模型",
+        "unavailable": "当前环境暂不支持",
+        "api-missing": "当前浏览器没有 Chrome Prompt API"
+      },
+      "status": {
+        "checking": "正在检查浏览器是否提供 Prompt API 以及本地模型是否已准备好。",
+        "available": "可以直接使用，无需填写 API 地址或密钥。当前会按英语输出能力创建会话；Chrome 官方目前仅支持英语、西班牙语、日语输出。",
+        "downloadable": "你的 Chrome 支持该能力，但本地模型尚未下载。只有点击下方按钮后，才会请求 Chrome 下载模型。",
+        "downloading": "Chrome 正在下载模型。下载可能需要一些时间，完成后可以直接测试或保存启用。",
+        "unavailable": "当前浏览器、设备、用户配置或企业策略可能不支持该能力。你仍然可以配置其他文本模型提供商。",
+        "api-missing": "请在支持 Prompt API 的 Chrome 中打开 Web 版。其他浏览器会安全降级，不会报错。"
+      }
+    },
+    "connection": {
+      "accountId": "账户 ID",
+      "requestStyle": "请求风格",
+      "requestStyleOptions": {
+        "chatCompletions": "Chat Completions",
+        "responses": "Responses"
+      }
+    },
+    "customHeaders": {
+      "label": "自定义请求头",
+      "namePlaceholder": "Header 名称，如 x-auth-token",
+      "valuePlaceholder": "Header 值",
+      "add": "添加请求头",
+      "validationError": "自定义请求头配置无效：{details}",
+      "validation": {
+        "invalid-name": "Header 名称格式无效",
+        "forbidden-name": "该 Header 由客户端或浏览器管理，不能覆盖",
+        "missing-value": "Header 值不能为空",
+        "invalid-value": "Header 值必须是文本、数字或布尔值"
+      }
+    },
+    "model": {
+      "section": "模型配置"
+    },
+    "advancedParameters": {
+      "title": "高级参数",
+      "noParamsConfigured": "未配置高级参数",
+      "customParam": "自定义",
+      "advancedTag": "高级",
+      "add": "添加参数",
+      "select": "选择参数",
+      "selectTitle": "添加高级参数",
+      "custom": "自定义参数",
+      "customKeyPlaceholder": "输入参数名称",
+      "customValuePlaceholder": "输入参数值",
+      "stopSequencesPlaceholder": "输入停止序列（逗号分隔）",
+      "unitLabel": "单位",
+      "currentProvider": "当前提供商",
+      "customProvider": "自定义",
+      "availableParams": "个可选参数",
+      "noAvailableParams": "无可选参数",
+      "validation": {
+        "unknownParam": "参数定义不存在",
+        "customKeyRequired": "参数名称不能为空",
+        "customValueRequired": "参数值不能为空",
+        "duplicateParam": "参数已存在",
+        "dangerousParam": "此参数名称包含潜在危险字符，不允许使用",
+        "invalidNumber": "参数值必须是有效的{type}",
+        "belowMin": "参数值不能小于 {min}",
+        "aboveMax": "参数值不能大于 {max}",
+        "mustBeInteger": "参数值必须是整数"
+      },
+      "formatJson": "JSON",
+      "formatString": "字符串",
+      "parsedAsObject": "已解析为 Object ✓",
+      "invalidJson": "无效 JSON，将作为字符串发送"
+    },
+    "modelKeyPlaceholder": "请输入模型标识",
+    "displayNamePlaceholder": "请输入显示名称",
+    "apiUrlPlaceholder": "https://api.example.com/v1",
+    "defaultModelPlaceholder": "输入或选择模型名称",
+    "apiKeyPlaceholder": "请输入API密钥（可选）",
+    "modelKeyRequired": "模型标识不能为空",
+    "modelKeyReserved": "模型标识“{id}”与内置配置冲突，请换一个标识，或直接编辑对应的内置模型配置",
+    "modelKeyAlreadyExists": "模型标识“{id}”已存在，请换一个标识",
+    "modelIdGenerateFailed": "生成唯一的模型标识失败，请重试",
+    "deleteConfirm": "确定要删除此模型吗？此操作不可恢复。",
+    "testing": "正在测试连接...",
+    "testSuccess": "{provider}连接测试成功",
+    "testFailed": "{provider}连接测试失败：{error}",
+    "updateSuccess": "更新成功",
+    "updateFailed": "更新失败：{error}",
+    "addSuccess": "添加成功",
+    "addFailed": "添加失败：{error}",
+    "createSuccess": "创建成功",
+    "createFailed": "创建失败：{error}",
+    "enableSuccess": "启用成功",
+    "enableFailed": "启用失败：{error}",
+    "disableSuccess": "禁用成功",
+    "disableFailed": "禁用失败：{error}",
+    "cloneModel": "克隆",
+    "cloneSuccess": "模型克隆成功",
+    "cloneFailed": "模型克隆失败",
+    "deleteSuccess": "删除成功",
+    "deleteFailed": "删除失败：{error}",
+    "toggleFailed": "切换失败：{error}",
+    "fetchModelsSuccess": "成功获取 {count} 个模型",
+    "loadingModels": "正在加载模型选项...",
+    "noModelsAvailable": "没有可用模型",
+    "fetchModelsFailed": "获取模型列表失败：{error}",
+    "fetchModelsFallback": "获取模型列表失败：{error}（已回退到默认的 {count} 个模型）",
+    "needApiKeyAndBaseUrl": "请先填写API地址和密钥",
+    "needBaseUrl": "请先填写API地址",
+    "corsRestrictedTag": "CORS受限",
+    "corsRestrictedConfirm": "{provider} 存在浏览器CORS跨域限制，Web端连接测试可能会失败。\n\n这不代表API Key有问题，而是浏览器安全策略阻止了请求。\n建议下载桌面版APP使用，或确保该提供商支持浏览器直连。\n\n是否继续测试？",
+    "errors": {
+      "crossOriginConnectionFailed": "跨域连接失败，请检查网络连接",
+      "connectionFailed": "连接失败，请检查API地址和网络连接",
+      "missingV1Suffix": "API地址格式错误，OpenAI兼容API需要包含\"/v1\"后缀",
+      "invalidResponseFormat": "API返回格式不兼容，请检查API服务是否为OpenAI兼容格式",
+      "emptyModelList": "API返回空的模型列表，该服务可能没有可用模型",
+      "apiError": "API错误：{error}"
+    },
+    "disabled": "已禁用",
+    "capabilities": {
+      "tools": "工具调用",
+      "reasoning": "推理模式",
+      "vision": "视觉理解"
+    },
+    "testConnectionAriaLabel": "测试连接到{name}",
+    "editModelAriaLabel": "编辑模型{name}",
+    "enableModelAriaLabel": "启用模型{name}",
+    "disableModelAriaLabel": "禁用模型{name}",
+    "deleteModelAriaLabel": "删除模型{name}",
+    "displayNameAriaLabel": "模型显示名称",
+    "apiUrlAriaLabel": "模型API地址",
+    "defaultModelAriaLabel": "默认模型名称",
+    "apiKeyAriaLabel": "API密钥",
+    "cancelEditAriaLabel": "取消编辑模型",
+    "saveEditAriaLabel": "保存模型修改",
+    "cancelAddAriaLabel": "取消添加模型",
+    "confirmAddAriaLabel": "确认添加模型"
+  },
+  "functionModel": {
+    "evaluationModel": "评估模型",
+    "evaluationModelPlaceholder": "默认：跟随全局优化模型",
+    "evaluationModelUnavailable": "已设置的评估模型已停用或删除，将按默认顺序选择可用模型。",
+    "saveFailed": "功能模型设置保存失败，请重试",
+    "loadFailed": "功能模型设置加载失败，请重试",
+    "evaluationModelHint": "用于提示词质量分析、结果评估及变量提取与生成。单独选择后优先使用此模型；未设置时跟随全局优化模型，没有全局优化模型时再使用测试模型。",
+    "imageRecognitionModel": "图像识别模型",
+    "imageRecognitionModelHint": "用于从图片提取 JSON 提示词和变量初始值，需单独设置",
+    "imageRecognitionModelUnavailable": "已设置的图片识别模型已停用或删除，请启用该模型或选择其他模型。",
+    "noImageRecognitionModel": "请先在功能模型中设置图像识别模型",
+    "unsupportedImageRecognitionModel": "当前图像识别模型暂不支持图片提取：{provider}"
+  },
+  "model": {
+    "select": {
+      "placeholder": "请选择模型",
+      "configure": "配置模型",
+      "noModels": "请配置模型",
+      "noAvailableModels": "暂无可用模型"
+    },
+    "quickSwitch": {
+      "title": "切换当前模型",
+      "placeholder": "选择模型",
+      "modelTagTitle": "点击切换当前配置的模型",
+      "fetchFailed": "获取在线模型列表失败：{error}，可继续选择本地默认模型。",
+      "updateSuccess": "已切换为 {model}",
+      "updateFailed": "切换模型失败：{error}"
+    },
+    "manager": {
+      "displayName": "例如: 自定义模型",
+      "apiUrl": "API 地址",
+      "defaultModel": "默认模型名称",
+      "modelNamePlaceholder": "例如: gpt-3.5-turbo"
+    }
+  },
+  "params": {
+    "temperature": {
+      "label": "温度 (Temperature)",
+      "description": "控制随机性：较低的值（例如0.2）使输出更集中和确定，较高的值（例如0.8）使其更随机。"
+    },
+    "top_p": {
+      "label": "Top P (核心采样)",
+      "description": "核心采样。仅考虑累积概率达到Top P阈值的Token。例如，0.1表示仅考虑构成最高10%概率质量的Token。"
+    },
+    "max_tokens": {
+      "label": "最大Token数",
+      "description": "在补全中生成的最大Token数量。"
+    },
+    "presence_penalty": {
+      "label": "存在惩罚 (Presence Penalty)",
+      "description": "介于-2.0和2.0之间的数字。正值会根据新Token是否已在文本中出现来惩罚它们，增加模型谈论新主题的可能性。"
+    },
+    "frequency_penalty": {
+      "label": "频率惩罚 (Frequency Penalty)",
+      "description": "介于-2.0和2.0之间的数字。正值会根据新Token在文本中已出现的频率来惩罚它们，降低模型逐字重复相同行的可能性。"
+    },
+    "timeout": {
+      "label": "超时时间 (毫秒)",
+      "description_openai": "OpenAI客户端连接的请求超时时间（毫秒）。"
+    },
+    "maxOutputTokens": {
+      "label": "最大输出Token数",
+      "description": "模型在单个响应中可以输出的最大Token数。"
+    },
+    "top_k": {
+      "label": "Top K (K选顶)",
+      "description": "将下一个Token的选择范围限制为K个最可能的Token。有助于减少无意义Token的生成。"
+    },
+    "candidateCount": {
+      "label": "候选数量",
+      "description": "返回的生成响应数量。必须介于1和8之间。"
+    },
+    "stopSequences": {
+      "label": "停止序列",
+      "description": "遇到时将停止输出生成的自定义字符串。用逗号分隔多个序列。"
+    },
+    "thinkingBudget": {
+      "label": "思考预算",
+      "description": "分配给模型思考过程的最大令牌数(仅 Gemini 2.5+)。范围：1-8192 令牌。"
+    },
+    "includeThoughts": {
+      "label": "包含思考过程",
+      "description": "是否在响应中包含模型的思考过程(仅 Gemini 2.5+)。启用后可以看到模型的推理步骤。"
+    },
+    "reasoning_effort": {
+      "label": "推理强度",
+      "description": "控制支持思考模式的模型投入的推理强度。"
+    },
+    "deepseek": {
+      "thinking_type": {
+        "label": "思考模式",
+        "description": "控制 DeepSeek 思考模式，会作为 thinking.type 发送到 API 请求中。",
+        "disabled": "关闭",
+        "enabled": "开启"
+      }
+    },
+    "tokens": {
+      "unit": "令牌"
+    },
+    "size": {
+      "label": "图像尺寸",
+      "description": "生成图像的分辨率/尺寸，如 1024x1024"
+    },
+    "quality": {
+      "label": "图像质量",
+      "description": "生成图像的质量等级：auto（自动）、high（高质量）、medium（中等）、low（低质量）"
+    },
+    "background": {
+      "label": "背景透明度",
+      "description": "设置图像背景：auto（自动）、transparent（透明）、opaque（不透明）"
+    },
+    "imageSize": {
+      "label": "图像尺寸",
+      "description": "生成图像的分辨率/尺寸，如 1024x1024"
+    },
+    "steps": {
+      "label": "迭代步数",
+      "description": "扩散/推理迭代次数，步数越多通常质量越高但更慢"
+    },
+    "guidance": {
+      "label": "引导强度",
+      "description": "提示词遵循强度，值越大越贴近提示"
+    },
+    "cfg": {
+      "label": "CFG强度",
+      "description": "无分类器引导强度，用于控制生成图像与提示词的匹配程度（仅Qwen-Image模型）"
+    },
+    "negativePrompt": {
+      "label": "负向提示词",
+      "description": "不希望图像出现的内容或风格"
+    },
+    "responseFormat": {
+      "label": "响应格式",
+      "description": "返回图片的格式（URL 或 Base64 编码）"
+    },
+    "outputFormat": {
+      "label": "输出格式",
+      "description": "指定生成图像的文件格式（如 PNG、JPEG 或 WebP）"
+    },
+    "watermark": {
+      "label": "水印",
+      "description": "是否在生成的图像上添加水印"
+    },
+    "sequentialGeneration": {
+      "label": "序列生成",
+      "description": "控制序列图像生成模式（支持的模型）"
+    },
+    "tools": {
+      "label": "工具",
+      "description": "5.0 系列扩展工具列表，每行一个工具名"
+    },
+    "seed": {
+      "label": "随机种子",
+      "description": "用于控制生成结果的随机数种子，相同种子产生相同结果"
+    },
+    "enable_thinking": {
+      "label": "启用思考",
+      "description": "启用思考模式，让模型进行推理（仅支持部分模型）"
+    },
+    "thinking_budget": {
+      "label": "思考Token预算",
+      "description": "分配给思考过程的最大Token数，用于限制推理长度"
+    },
+    "enable_search": {
+      "label": "启用联网搜索",
+      "description": "启用联网搜索功能，让模型获取实时信息（仅支持部分模型）"
+    },
+    "max_completion_tokens": {
+      "label": "最大补全Token数",
+      "description": "在补全中生成的最大Token数量（推荐使用，替代 max_tokens）。范围：1-1,000,000。"
+    },
+    "logprobs": {
+      "label": "返回对数概率",
+      "description": "是否在响应中返回输出Token的对数概率信息。启用后可以看到模型对每个Token的置信度。"
+    },
+    "top_logprobs": {
+      "label": "Top对数概率数量",
+      "description": "返回每个Token位置上概率最高的N个备选Token及其对数概率。范围：0-20。需要先启用 logprobs。"
+    },
+    "n": {
+      "label": "生成数量",
+      "description": "为每个输入生成多少个补全结果。范围：1-128。注意：生成多个结果会消耗更多Token配额。"
+    }
+  }
+} as const;
+
+export default messages;
