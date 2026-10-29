@@ -38,6 +38,23 @@ SPEC_FILE = DESKTOP_DIR / "PromptOptimizerApp.spec"
 BUILD_INFO = DESKTOP_DIR / "build-info.json"
 
 
+# ------------------------------------------------------------------ 控制台编码
+
+def _ensure_utf8_stdio() -> None:
+    """Windows 上默认控制台编码可能是 cp1252/cp936，直接打印中文会 UnicodeEncodeError。
+
+    CI（GitHub Actions 的 pwsh）尤其明显，这里统一把标准输出切到 UTF-8。
+    """
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
+        except (AttributeError, ValueError):
+            pass
+
+
+_ensure_utf8_stdio()
+
+
 # ------------------------------------------------------------------ 工具函数
 
 

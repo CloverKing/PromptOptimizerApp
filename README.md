@@ -3,7 +3,7 @@
 把 [Prompt Optimizer](https://github.com/linshenkx/prompt-optimizer)（一个纯前端的 AI 提示词优化 Web 应用）封装成 **Windows 单文件 exe**，并且能持续、无冲突地跟随上游更新。
 
 > 一句话选型：上游自带的 Electron 桌面端只能产出 NSIS 安装包 / zip，本项目改用
-> **Python + WebView2（pywebview）** 承载同一套前端产物，得到一个免安装、约 20 MB 的单文件程序，
+> **Python + WebView2（pywebview）** 承载同一套前端产物，得到一个免安装、约 15 MB 的单文件程序，
 > 同时**不修改上游任何一行代码**——这是后续能无痛同步上游的前提。
 
 ---
@@ -120,8 +120,8 @@ python desktop/build.py --skip-node    # 复用已有的 desktop/web-dist，只�
 
 ```bash
 cd desktop
-python ../desktop/build.py --skip-node     # 确保 web-dist 存在
-python -m app --debug                      # 开控制台日志 + DevTools
+python build.py --skip-pack    # 首次需要，生成 desktop/web-dist
+python -m app --debug          # 开控制台日志 + DevTools
 python -m app --server-only --port 17321   # 只起服务，用浏览器看效果
 ```
 
@@ -186,7 +186,7 @@ git tag v1.0.1 && git push origin main --tags   # 触发 CI 出 Release
 | 能力 | 上游 Electron 版 | 本项目（Python + WebView2） |
 | --- | --- | --- |
 | 分发形态 | NSIS 安装包 + zip | **单个 exe**，免安装 |
-| 体积 | 100 MB+ | 约 20 MB（不含系统 WebView2） |
+| 体积 | 100 MB+ | 约 15 MB（不含系统 WebView2） |
 | 数据存放 | 文件系统（userData 目录） | WebView2 的 IndexedDB |
 | 存储后端 | 文件存储（可被 S3/WebDAV 备份） | IndexedDB（可用目录级备份） |
 | 自动更新 | electron-updater 静默更新 | 检查 Release 后提示手动下载 |

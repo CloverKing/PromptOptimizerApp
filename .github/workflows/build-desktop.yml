@@ -9,6 +9,10 @@ on:
 permissions:
   contents: write
 
+env:
+  # 构建脚本会输出中文日志，Windows runner 默认编码不是 UTF-8
+  PYTHONIOENCODING: utf-8
+
 jobs:
   windows-exe:
     runs-on: windows-latest
