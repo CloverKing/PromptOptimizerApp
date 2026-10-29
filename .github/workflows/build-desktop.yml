@@ -62,4 +62,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: desktop/dist/PromptOptimizerApp.exe
+          # 允许重跑时覆盖同名资产（本地手工上传过 exe 也不会冲突）
+          overwrite_files: true
           generate_release_notes: true
