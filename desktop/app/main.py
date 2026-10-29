@@ -101,6 +101,7 @@ class DesktopApp:
         self.window: Any = None
         self._inject_source = ""
         self._update_checked = False
+        self._is_maximized = False
         self._lock = threading.Lock()
 
     # ---------- 对外信息 ----------
@@ -197,6 +198,7 @@ class DesktopApp:
             log.warning("注入脚本缺失：%s", inject_path)
 
         window_config = self.config["window"]
+        self._is_maximized = bool(window_config.get("maximized"))
         icon = paths.bundle_dir() / "assets" / "icon.ico"
 
         self.window = webview.create_window(
@@ -216,6 +218,8 @@ class DesktopApp:
         )
         self.window.events.loaded += self._on_loaded
         self.window.events.closing += self._on_closing
+        self.window.events.maximized += self._on_maximized
+        self.window.events.restored += self._on_restored
 
         webview.start(
             debug=bool(self.debug or self.config.get("devtools")),
@@ -269,13 +273,23 @@ class DesktopApp:
             duration=30000,
         )
 
+    def _on_maximized(self) -> None:
+        self._is_maximized = True
+        log.debug("窗口已最大化")
+
+    def _on_restored(self) -> None:
+        self._is_maximized = False
+        log.debug("窗口已还原")
+
     def _on_closing(self) -> bool:
         try:
-            width = int(self.window.width)
-            height = int(self.window.height)
-            if 400 <= width <= 10000 and 300 <= height <= 10000:
-                self.config.setdefault("window", {})["width"] = width
-                self.config["window"]["height"] = height
+            # 最大化时读到的是屏幕尺寸，不是用户想要的窗口尺寸，别写回配置
+            if not self._is_maximized:
+                width = int(self.window.width)
+                height = int(self.window.height)
+                if 400 <= width <= 10000 and 300 <= height <= 10000:
+                    self.config.setdefault("window", {})["width"] = width
+                    self.config["window"]["height"] = height
             config_module.save(paths.config_path(), self.config)
         except Exception:  # noqa: BLE001
             log.debug("保存窗口尺寸失败", exc_info=True)

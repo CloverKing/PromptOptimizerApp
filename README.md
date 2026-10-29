@@ -171,7 +171,7 @@ git tag v1.0.1 && git push origin main --tags   # 触发 CI 出 Release
 | --- | --- | --- |
 | `port` | `17321` | 本地服务端口。**改端口等于换一份本地数据** |
 | `window.width/height` | `1280/860` | 窗口尺寸，关闭时自动回写 |
-| `window.maximized` | `false` | 是否最大化启动 |
+| `window.maximized` | `true` | 启动时最大化；改成 `false` 用普通窗口（下次启动生效） |
 | `disable_service_worker` | `true` | 关闭 PWA 缓存，保证升级后加载新前端 |
 | `check_updates` | `true` | 启动后查一次本仓库 Release |
 | `devtools` | `false` | 打开开发者工具 |

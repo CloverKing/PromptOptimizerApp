@@ -23,7 +23,8 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "height": 860,
         "min_width": 960,
         "min_height": 620,
-        "maximized": False,
+        # 启动时最大化。想用普通窗口就改成 false（下次启动生效）。
+        "maximized": True,
         "x": None,
         "y": None,
     },
